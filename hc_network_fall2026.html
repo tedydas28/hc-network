@@ -1,0 +1,321 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 800px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#c0282d", "id": "professionalism", "label": "#professionalism", "shape": "dot", "size": 12.242640687119286, "title": "#professionalism\nCommunicating Effectively\n\nFollow established guidelines to present yourself and your work products professionally.\n\nIntroduced: MC50 Foundation (Aug 26-Sep 5)\nSessions: 2"}, {"color": "#1f5fad", "id": "interpretivelens", "label": "#interpretivelens", "shape": "dot", "size": 12.242640687119286, "title": "#interpretivelens\nCritical Thinking\n\nBe mindful of how prior experiences, expectations, and judgments affect inferences drawn from different forms of communication, and react accordingly.\n\nIntroduced: MC50 1.2 (Sep 9)\nSessions: 2"}, {"color": "#1f5fad", "id": "context", "label": "#context", "shape": "dot", "size": 14.70820393249937, "title": "#context\nCritical Thinking\n\nSituate a work in its relevant context (e.g., historical, disciplinary, cultural).\n\nIntroduced: MC50 2.1 (Sep 14)\nSessions: 5"}, {"color": "#1f5fad", "id": "critique", "label": "#critique", "shape": "dot", "size": 16.48528137423857, "title": "#critique\nCritical Thinking\n\nActively and critically engage with texts and other forms of communication.\n\nIntroduced: MC50 2.2 (Sep 16)\nSessions: 8"}, {"color": "#c0282d", "id": "connotation", "label": "#connotation", "shape": "dot", "size": 15.348469228349533, "title": "#connotation\nCommunicating Effectively\n\nUnderstand and use connotations, tone, and style.\n\nIntroduced: MC50 3.2 (Sep 23)\nSessions: 6"}, {"color": "#c0282d", "id": "audience", "label": "#audience", "shape": "dot", "size": 14.0, "title": "#audience\nCommunicating Effectively\n\nTailor oral and written work by considering the situation and perspective of the people receiving it.\n\nIntroduced: MC50 4.1 (Sep 28)\nSessions: 4"}, {"color": "#c0282d", "id": "thesis", "label": "#thesis", "shape": "dot", "size": 16.48528137423857, "title": "#thesis\nCommunicating Effectively\n\nFormulate a well-defined thesis.\n\nIntroduced: MC50 4.2 (Sep 30)\nSessions: 8"}, {"color": "#1f5fad", "id": "evidencebased", "label": "#evidencebased", "shape": "dot", "size": 19.224972160321826, "title": "#evidencebased\nCritical Thinking\n\nIdentify and appropriately structure the information needed to support an argument effectively.\n\nIntroduced: EA50 2.1 (Sep 14)\nSessions: 14"}, {"color": "#1f5fad", "id": "sourcequality", "label": "#sourcequality", "shape": "dot", "size": 14.0, "title": "#sourcequality\nCritical Thinking\n\nDistinguish between categories and types of information to determine source quality.\n\nIntroduced: MC50 6.2 (Oct 14)\nSessions: 4"}, {"color": "#c0282d", "id": "organization", "label": "#organization", "shape": "dot", "size": 17.0, "title": "#organization\nCommunicating Effectively\n\nEffectively organize communications.\n\nIntroduced: MC50 7.2 (Oct 21)\nSessions: 9"}, {"color": "#c0282d", "id": "composition", "label": "#composition", "shape": "dot", "size": 15.348469228349533, "title": "#composition\nCommunicating Effectively\n\nCommunicate with a clear and precise style.\n\nIntroduced: MC50 9.1 (Nov 2)\nSessions: 6"}, {"color": "#c0282d", "id": "expression", "label": "#expression", "shape": "dot", "size": 12.242640687119286, "title": "#expression\nCommunicating Effectively\n\nInterpret, evaluate, and use nonverbal communication.\n\nIntroduced: MC50 13.2 (Dec 2)\nSessions: 2"}, {"color": "#e08a1e", "id": "emotionaliq", "label": "#emotionaliq", "shape": "dot", "size": 12.242640687119286, "title": "#emotionaliq\nInteracting Effectively\n\nUse emotional intelligence to interact effectively.\n\nIntroduced: CX50 Foundation (Aug 26-Sep 5)\nSessions: 2"}, {"color": "#e08a1e", "id": "selfawareness", "label": "#selfawareness", "shape": "dot", "size": 11.0, "title": "#selfawareness\nInteracting Effectively\n\nIdentify and monitor your strengths and weaknesses; mitigate behaviors and habits that impair effective performance.\n\nIntroduced: CX50 Foundation (Aug 26-Sep 5)\nSessions: 1"}, {"color": "#e08a1e", "id": "responsibility", "label": "#responsibility", "shape": "dot", "size": 11.0, "title": "#responsibility\nInteracting Effectively\n\nFollow through on commitments, be proactive, and take responsibility.\n\nIntroduced: CX50 Foundation (Aug 26-Sep 5)\nSessions: 1"}, {"color": "#e08a1e", "id": "systemmapping", "label": "#systemmapping", "shape": "dot", "size": 18.392304845413264, "title": "#systemmapping\nInteracting Effectively\n\nDevelop and analyze representations of complex systems by deconstructing them and conceptualizing their constituent parts in different ways, guided by an explanatory challenge.\n\nIntroduced: CX50 1.2 (Sep 9)\nSessions: 12"}, {"color": "#e08a1e", "id": "levelsofanalysis", "label": "#levelsofanalysis", "shape": "dot", "size": 18.392304845413264, "title": "#levelsofanalysis\nInteracting Effectively\n\nAnalyze characteristics or behavior of a complex system, integrating explanations found at different levels of analysis and their interactions.\n\nIntroduced: CX50 2.1 (Sep 14)\nSessions: 12"}, {"color": "#e08a1e", "id": "emergentproperties", "label": "#emergentproperties", "shape": "dot", "size": 18.392304845413264, "title": "#emergentproperties\nInteracting Effectively\n\nIdentify emergent properties of complex systems and discern the interactions that give rise to them.\n\nIntroduced: CX50 2.2 (Sep 16)\nSessions: 12"}, {"color": "#e08a1e", "id": "complexcausality", "label": "#complexcausality", "shape": "dot", "size": 17.486832980505138, "title": "#complexcausality\nInteracting Effectively\n\nIdentify ways that multiple causes interact to produce complex effects.\n\nIntroduced: CX50 4.1 (Sep 28)\nSessions: 10"}, {"color": "#e08a1e", "id": "networks", "label": "#networks", "shape": "dot", "size": 15.937253933193773, "title": "#networks\nInteracting Effectively\n\nApply network analysis to explain outcomes that arise out of the structure of connections.\n\nIntroduced: CX50 4.1 (Sep 28)\nSessions: 7"}, {"color": "#e08a1e", "id": "systemdynamics", "label": "#systemdynamics", "shape": "dot", "size": 15.348469228349533, "title": "#systemdynamics\nInteracting Effectively\n\nUse the tools of phase spaces, including attractors, critical points, and basins, to describe and predict the ways a complex system changes over time.\n\nIntroduced: CX50 6.2 (Oct 14)\nSessions: 6"}, {"color": "#1f5fad", "id": "psychologicalexplanation", "label": "#psychologicalexplanation", "shape": "dot", "size": 14.70820393249937, "title": "#psychologicalexplanation\nCritical Thinking\n\nAnalyze the interacting factors across levels of analysis that explain and shape the behavior of complex agents.\n\nIntroduced: CX50 7.2 (Oct 21)\nSessions: 5"}, {"color": "#e08a1e", "id": "differences", "label": "#differences", "shape": "dot", "size": 12.242640687119286, "title": "#differences\nInteracting Effectively\n\nIdentify and utilize people\u0027s different skills, abilities, traits, attitudes, and beliefs.\n\nIntroduced: CX50 8.2 (Oct 28)\nSessions: 2"}, {"color": "#1f5fad", "id": "utility", "label": "#utility", "shape": "dot", "size": 14.0, "title": "#utility\nCritical Thinking\n\nUse utility to represent preferences and analyze purposeful decision-making.\n\nIntroduced: CX50 9.2 (Nov 4)\nSessions: 4"}, {"color": "#e08a1e", "id": "conformity", "label": "#conformity", "shape": "dot", "size": 14.0, "title": "#conformity\nInteracting Effectively\n\nIdentify and analyze social norms, their features, origins and development; evaluate the appropriateness of conformity and contrarianism and apply strategies of social change when applicable.\n\nIntroduced: CX50 11.1 (Nov 16)\nSessions: 4"}, {"color": "#e08a1e", "id": "powerdynamics", "label": "#powerdynamics", "shape": "dot", "size": 12.242640687119286, "title": "#powerdynamics\nInteracting Effectively\n\nRecognize different sources of power and use them to analyze situations and influence others.\n\nIntroduced: CX50 13.1 (Nov 30)\nSessions: 2"}, {"color": "#1f5fad", "id": "purpose", "label": "#purpose", "shape": "dot", "size": 11.0, "title": "#purpose\nCritical Thinking\n\nArticulate a mission statement that coherently connects fundamental values with long- and short-term goals, as well as the operating procedures that advance these goals in light of the values.\n\nIntroduced: not marked\nSessions: 1"}, {"color": "#3a8a34", "id": "scienceoflearning", "label": "#scienceoflearning", "shape": "dot", "size": 12.242640687119286, "title": "#scienceoflearning\nCreative Thinking\n\nEvaluate and use effective strategies to learn or teach specific types of material.\n\nIntroduced: EA50 1.2 (Sep 9)\nSessions: 2"}, {"color": "#1f5fad", "id": "rightproblem", "label": "#rightproblem", "shape": "dot", "size": 17.486832980505138, "title": "#rightproblem\nCritical Thinking\n\nCharacterize the nature of the problem.\n\nIntroduced: EA50 2.1 (Sep 14)\nSessions: 10"}, {"color": "#1f5fad", "id": "breakitdown", "label": "#breakitdown", "shape": "dot", "size": 16.48528137423857, "title": "#breakitdown\nCritical Thinking\n\nOrganize problems into tractable components and design solutions.\n\nIntroduced: EA50 2.2 (Sep 16)\nSessions: 8"}, {"color": "#3a8a34", "id": "gapanalysis", "label": "#gapanalysis", "shape": "dot", "size": 16.48528137423857, "title": "#gapanalysis\nCreative Thinking\n\nIdentify and evaluate whether there are suitable existing solutions to a problem or whether a creative new solution is required.\n\nIntroduced: EA50 3.1 (Sep 21)\nSessions: 8"}, {"color": "#3a8a34", "id": "constraints", "label": "#constraints", "shape": "dot", "size": 15.937253933193773, "title": "#constraints\nCreative Thinking\n\nIdentify and apply constraint satisfaction as a way to solve problems.\n\nIntroduced: EA50 3.1 (Sep 21)\nSessions: 7"}, {"color": "#3a8a34", "id": "analogies", "label": "#analogies", "shape": "dot", "size": 13.196152422706632, "title": "#analogies\nCreative Thinking\n\nUse analogies in problem solving appropriately.\n\nIntroduced: EA50 4.2 (Sep 30)\nSessions: 3"}, {"color": "#3a8a34", "id": "heuristics", "label": "#heuristics", "shape": "dot", "size": 13.196152422706632, "title": "#heuristics\nCreative Thinking\n\nIdentify when to use heuristics and when to avoid them.\n\nIntroduced: EA50 5.1 (Oct 5)\nSessions: 3"}, {"color": "#3a8a34", "id": "dataviz", "label": "#dataviz", "shape": "dot", "size": 15.937253933193773, "title": "#dataviz\nCreative Thinking\n\nInterpret, analyze, and create data visualizations.\n\nIntroduced: FA50 6.2 (Oct 14)\nSessions: 7"}, {"color": "#1f5fad", "id": "variables", "label": "#variables", "shape": "dot", "size": 17.0, "title": "#variables\nCritical Thinking\n\nIdentify and classify the relevant variables of a system, problem, or model.\n\nIntroduced: FA50 5.2 (Oct 7)\nSessions: 9"}, {"color": "#1f5fad", "id": "descriptivestats", "label": "#descriptivestats", "shape": "dot", "size": 14.70820393249937, "title": "#descriptivestats\nCritical Thinking\n\nCalculate and interpret descriptive statistics appropriately.\n\nIntroduced: FA50 6.2 (Oct 14)\nSessions: 5"}, {"color": "#3a8a34", "id": "hypothesisdevelopment", "label": "#hypothesisdevelopment", "shape": "dot", "size": 16.48528137423857, "title": "#hypothesisdevelopment\nCreative Thinking\n\nEvaluate the link between hypothesis-driven research and the theories or observations that motivate it.\n\nIntroduced: EA50 9.1 (Nov 2)\nSessions: 8"}, {"color": "#1f5fad", "id": "testability", "label": "#testability", "shape": "dot", "size": 14.0, "title": "#testability\nCritical Thinking\n\nEvaluate whether hypotheses lead to testable predictions.\n\nIntroduced: EA50 9.2 (Nov 4)\nSessions: 4"}, {"color": "#1f5fad", "id": "plausibility", "label": "#plausibility", "shape": "dot", "size": 14.0, "title": "#plausibility\nCritical Thinking\n\nEvaluate whether hypotheses are based on plausible premises or assumptions.\n\nIntroduced: EA50 10.1 (Nov 9)\nSessions: 4"}, {"color": "#3a8a34", "id": "observationalstudy", "label": "#observationalstudy", "shape": "dot", "size": 14.0, "title": "#observationalstudy\nCreative Thinking\n\nDesign and interpret observational studies.\n\nIntroduced: EA50 10.2 (Nov 11)\nSessions: 4"}, {"color": "#3a8a34", "id": "interventionalstudy", "label": "#interventionalstudy", "shape": "dot", "size": 13.196152422706632, "title": "#interventionalstudy\nCreative Thinking\n\nDesign and interpret experimental studies.\n\nIntroduced: EA50 10.2 (Nov 11)\nSessions: 3"}, {"color": "#3a8a34", "id": "modeling", "label": "#modeling", "shape": "dot", "size": 12.242640687119286, "title": "#modeling\nCreative Thinking\n\nRecognize how models can be used to describe a system, explain a set of data, and generate predictions.\n\nIntroduced: EA50 13.1 (Nov 30)\nSessions: 2"}, {"color": "#1f5fad", "id": "deduction", "label": "#deduction", "shape": "dot", "size": 16.48528137423857, "title": "#deduction\nCritical Thinking\n\nAnalyze and apply deductive reasoning.\n\nIntroduced: FA50 1.2 (Sep 9)\nSessions: 8"}, {"color": "#3a8a34", "id": "algorithms", "label": "#algorithms", "shape": "dot", "size": 14.0, "title": "#algorithms\nCreative Thinking\n\nApply algorithmic thinking strategies to solve problems and effectively implement working code.\n\nIntroduced: FA50 2.2 (Sep 16)\nSessions: 4"}, {"color": "#1f5fad", "id": "induction", "label": "#induction", "shape": "dot", "size": 14.70820393249937, "title": "#induction\nCritical Thinking\n\nAnalyze and apply inductive reasoning.\n\nIntroduced: FA50 3.2 (Sep 23)\nSessions: 5"}, {"color": "#1f5fad", "id": "fallacies", "label": "#fallacies", "shape": "dot", "size": 13.196152422706632, "title": "#fallacies\nCritical Thinking\n\nIdentify and correct logical fallacies.\n\nIntroduced: FA50 4.1 (Sep 28)\nSessions: 3"}, {"color": "#1f5fad", "id": "estimation", "label": "#estimation", "shape": "dot", "size": 12.242640687119286, "title": "#estimation\nCritical Thinking\n\nUse estimation and approximation techniques appropriately.\n\nIntroduced: FA50 5.1 (Oct 5)\nSessions: 2"}, {"color": "#1f5fad", "id": "probability", "label": "#probability", "shape": "dot", "size": 18.816653826391967, "title": "#probability\nCritical Thinking\n\nApply and interpret fundamental concepts of probability, including conditional and Bayesian probabilities.\n\nIntroduced: FA50 7.1 (Oct 19)\nSessions: 13"}, {"color": "#1f5fad", "id": "distributions", "label": "#distributions", "shape": "dot", "size": 17.9498743710662, "title": "#distributions\nCritical Thinking\n\nIdentify different types of distributions and make inferences based on samples from distributions appropriately.\n\nIntroduced: FA50 8.1 (Oct 26)\nSessions: 11"}, {"color": "#1f5fad", "id": "confidenceintervals", "label": "#confidenceintervals", "shape": "dot", "size": 14.70820393249937, "title": "#confidenceintervals\nCritical Thinking\n\nApply and interpret confidence intervals.\n\nIntroduced: FA50 10.2 (Nov 11)\nSessions: 5"}, {"color": "#1f5fad", "id": "significance", "label": "#significance", "shape": "dot", "size": 14.0, "title": "#significance\nCritical Thinking\n\nApply, interpret, and distinguish practical and statistical significance.\n\nIntroduced: FA50 11.2 (Nov 18)\nSessions: 4"}]);
+                  edges = new vis.DataSet([{"color": "#b0b6c0", "dashes": false, "from": "distributions", "title": "11 shared session(s): FA50 8.1, FA50 8.2, FA50 9.1, FA50 9.2, FA50 10.1, FA50 10.2, FA50 11.1, FA50 11.2, FA50 13.1, FA50 13.2, FA50 14.1", "to": "probability", "value": 11}, {"color": "#b0b6c0", "dashes": false, "from": "emergentproperties", "title": "9 shared session(s): CX50 2.2, CX50 3.2, CX50 4.1, CX50 4.2, CX50 5.1, CX50 5.2, CX50 7.1, CX50 8.1, CX50 10.1", "to": "levelsofanalysis", "value": 9}, {"color": "#b0b6c0", "dashes": false, "from": "complexcausality", "title": "8 shared session(s): CX50 4.1, CX50 4.2, CX50 5.1, CX50 5.2, CX50 7.1, CX50 8.1, CX50 9.1, CX50 10.1", "to": "emergentproperties", "value": 8}, {"color": "#b0b6c0", "dashes": false, "from": "emergentproperties", "title": "8 shared session(s): CX50 2.2, CX50 3.2, CX50 4.1, CX50 4.2, CX50 5.1, CX50 5.2, CX50 7.1, CX50 11.2", "to": "systemmapping", "value": 8}, {"color": "#b0b6c0", "dashes": false, "from": "complexcausality", "title": "8 shared session(s): CX50 4.1, CX50 4.2, CX50 5.1, CX50 5.2, CX50 7.1, CX50 8.1, CX50 9.2, CX50 10.1", "to": "levelsofanalysis", "value": 8}, {"color": "#b0b6c0", "dashes": false, "from": "levelsofanalysis", "title": "8 shared session(s): CX50 2.1, CX50 2.2, CX50 3.2, CX50 4.1, CX50 4.2, CX50 5.1, CX50 5.2, CX50 7.1", "to": "systemmapping", "value": 8}, {"color": "#333333", "dashes": true, "from": "gapanalysis", "title": "8 shared session(s): EA50 3.1, EA50 3.2, EA50 4.1, EA50 4.2, EA50 5.1, EA50 5.2, EA50 6.2, EA50 11.1", "to": "rightproblem", "value": 8}, {"color": "#333333", "dashes": true, "from": "evidencebased", "title": "7 shared session(s): MC50 7.2, MC50 8.1, MC50 8.2, MC50 10.1, MC50 11.1, MC50 13.1, MC50 13.2", "to": "organization", "value": 7}, {"color": "#b0b6c0", "dashes": false, "from": "constraints", "title": "7 shared session(s): EA50 3.1, EA50 3.2, EA50 4.1, EA50 4.2, EA50 5.1, EA50 5.2, EA50 6.2", "to": "gapanalysis", "value": 7}, {"color": "#333333", "dashes": true, "from": "constraints", "title": "7 shared session(s): EA50 3.1, EA50 3.2, EA50 4.1, EA50 4.2, EA50 5.1, EA50 5.2, EA50 6.2", "to": "rightproblem", "value": 7}, {"color": "#b0b6c0", "dashes": false, "from": "complexcausality", "title": "7 shared session(s): CX50 4.1, CX50 5.1, CX50 5.2, CX50 7.1, CX50 8.1, CX50 9.2, CX50 10.1", "to": "networks", "value": 7}, {"color": "#b0b6c0", "dashes": false, "from": "levelsofanalysis", "title": "7 shared session(s): CX50 4.1, CX50 5.1, CX50 5.2, CX50 7.1, CX50 8.1, CX50 9.2, CX50 10.1", "to": "networks", "value": 7}, {"color": "#b0b6c0", "dashes": false, "from": "breakitdown", "title": "7 shared session(s): EA50 2.2, EA50 3.2, EA50 4.1, EA50 4.2, EA50 5.1, EA50 5.2, EA50 6.2", "to": "rightproblem", "value": 7}, {"color": "#b0b6c0", "dashes": false, "from": "complexcausality", "title": "6 shared session(s): CX50 4.1, CX50 4.2, CX50 5.1, CX50 5.2, CX50 7.1, CX50 13.2", "to": "systemmapping", "value": 6}, {"color": "#333333", "dashes": true, "from": "breakitdown", "title": "6 shared session(s): EA50 3.2, EA50 4.1, EA50 4.2, EA50 5.1, EA50 5.2, EA50 6.2", "to": "constraints", "value": 6}, {"color": "#333333", "dashes": true, "from": "breakitdown", "title": "6 shared session(s): EA50 3.2, EA50 4.1, EA50 4.2, EA50 5.1, EA50 5.2, EA50 6.2", "to": "gapanalysis", "value": 6}, {"color": "#b0b6c0", "dashes": false, "from": "emergentproperties", "title": "6 shared session(s): CX50 4.1, CX50 5.1, CX50 5.2, CX50 7.1, CX50 8.1, CX50 10.1", "to": "networks", "value": 6}, {"color": "#b0b6c0", "dashes": false, "from": "complexcausality", "title": "5 shared session(s): CX50 7.1, CX50 8.1, CX50 9.2, CX50 10.1, CX50 13.2", "to": "systemdynamics", "value": 5}, {"color": "#b0b6c0", "dashes": false, "from": "confidenceintervals", "title": "5 shared session(s): FA50 10.2, FA50 11.1, FA50 11.2, FA50 13.1, FA50 13.2", "to": "probability", "value": 5}, {"color": "#b0b6c0", "dashes": false, "from": "confidenceintervals", "title": "5 shared session(s): FA50 10.2, FA50 11.1, FA50 11.2, FA50 13.1, FA50 13.2", "to": "distributions", "value": 5}, {"color": "#333333", "dashes": true, "from": "dataviz", "title": "5 shared session(s): EA50 7.1, EA50 8.1, EA50 8.2, EA50 11.2, FA50 6.2", "to": "variables", "value": 5}, {"color": "#b0b6c0", "dashes": false, "from": "composition", "title": "5 shared session(s): MC50 9.2, MC50 10.1, MC50 11.2, MC50 13.1, MC50 13.2", "to": "organization", "value": 5}, {"color": "#b0b6c0", "dashes": false, "from": "connotation", "title": "5 shared session(s): MC50 9.2, MC50 10.1, MC50 11.1, MC50 11.2, MC50 13.1", "to": "organization", "value": 5}, {"color": "#333333", "dashes": true, "from": "evidencebased", "title": "5 shared session(s): MC50 7.2, MC50 8.2, MC50 10.2, MC50 13.1, MC50 13.2", "to": "thesis", "value": 5}, {"color": "#b0b6c0", "dashes": false, "from": "levelsofanalysis", "title": "4 shared session(s): CX50 7.1, CX50 8.1, CX50 9.2, CX50 10.1", "to": "systemdynamics", "value": 4}, {"color": "#b0b6c0", "dashes": false, "from": "networks", "title": "4 shared session(s): CX50 4.1, CX50 5.1, CX50 5.2, CX50 7.1", "to": "systemmapping", "value": 4}, {"color": "#b0b6c0", "dashes": false, "from": "organization", "title": "4 shared session(s): MC50 7.2, MC50 8.2, MC50 13.1, MC50 13.2", "to": "thesis", "value": 4}, {"color": "#333333", "dashes": true, "from": "connotation", "title": "4 shared session(s): MC50 3.2, MC50 9.2, MC50 11.1, MC50 13.1", "to": "critique", "value": 4}, {"color": "#333333", "dashes": true, "from": "hypothesisdevelopment", "title": "4 shared session(s): EA50 10.1, EA50 11.1, EA50 11.2, EA50 13.2", "to": "plausibility", "value": 4}, {"color": "#b0b6c0", "dashes": false, "from": "hypothesisdevelopment", "title": "4 shared session(s): EA50 10.2, EA50 11.1, EA50 11.2, EA50 13.2", "to": "observationalstudy", "value": 4}, {"color": "#b0b6c0", "dashes": false, "from": "descriptivestats", "title": "4 shared session(s): EA50 8.1, EA50 8.2, FA50 6.2, FA50 8.1", "to": "variables", "value": 4}, {"color": "#b0b6c0", "dashes": false, "from": "deduction", "title": "4 shared session(s): FA50 3.2, FA50 4.1, FA50 4.2, FA50 5.1", "to": "induction", "value": 4}, {"color": "#b0b6c0", "dashes": false, "from": "distributions", "title": "4 shared session(s): FA50 11.2, FA50 13.1, FA50 13.2, FA50 14.1", "to": "significance", "value": 4}, {"color": "#333333", "dashes": true, "from": "hypothesisdevelopment", "title": "4 shared session(s): EA50 9.2, EA50 11.1, EA50 13.1, EA50 13.2", "to": "testability", "value": 4}, {"color": "#b0b6c0", "dashes": false, "from": "composition", "title": "4 shared session(s): MC50 9.2, MC50 10.1, MC50 11.2, MC50 13.1", "to": "connotation", "value": 4}, {"color": "#b0b6c0", "dashes": false, "from": "networks", "title": "4 shared session(s): CX50 7.1, CX50 8.1, CX50 9.2, CX50 10.1", "to": "systemdynamics", "value": 4}, {"color": "#b0b6c0", "dashes": false, "from": "probability", "title": "4 shared session(s): FA50 11.2, FA50 13.1, FA50 13.2, FA50 14.1", "to": "significance", "value": 4}, {"color": "#b0b6c0", "dashes": false, "from": "critique", "title": "3 shared session(s): MC50 10.2, MC50 11.1, MC50 13.1", "to": "evidencebased", "value": 3}, {"color": "#b0b6c0", "dashes": false, "from": "emergentproperties", "title": "3 shared session(s): CX50 7.1, CX50 8.1, CX50 10.1", "to": "systemdynamics", "value": 3}, {"color": "#333333", "dashes": true, "from": "levelsofanalysis", "title": "3 shared session(s): CX50 9.2, CX50 10.1, CX50 11.1", "to": "utility", "value": 3}, {"color": "#333333", "dashes": true, "from": "critique", "title": "3 shared session(s): MC50 9.2, MC50 11.1, MC50 13.1", "to": "organization", "value": 3}, {"color": "#333333", "dashes": true, "from": "composition", "title": "3 shared session(s): MC50 10.1, MC50 13.1, MC50 13.2", "to": "evidencebased", "value": 3}, {"color": "#333333", "dashes": true, "from": "context", "title": "3 shared session(s): MC50 8.2, MC50 9.2, MC50 11.2", "to": "organization", "value": 3}, {"color": "#b0b6c0", "dashes": false, "from": "audience", "title": "3 shared session(s): MC50 9.2, MC50 13.1, MC50 13.2", "to": "composition", "value": 3}, {"color": "#333333", "dashes": true, "from": "heuristics", "title": "3 shared session(s): EA50 5.1, EA50 5.2, EA50 6.2", "to": "rightproblem", "value": 3}, {"color": "#b0b6c0", "dashes": false, "from": "conformity", "title": "3 shared session(s): CX50 11.2, CX50 13.1, CX50 13.2", "to": "systemmapping", "value": 3}, {"color": "#b0b6c0", "dashes": false, "from": "psychologicalexplanation", "title": "3 shared session(s): CX50 10.1, CX50 10.2, CX50 11.1", "to": "utility", "value": 3}, {"color": "#333333", "dashes": true, "from": "analogies", "title": "3 shared session(s): EA50 4.2, EA50 5.1, EA50 6.2", "to": "breakitdown", "value": 3}, {"color": "#b0b6c0", "dashes": false, "from": "analogies", "title": "3 shared session(s): EA50 4.2, EA50 5.1, EA50 6.2", "to": "constraints", "value": 3}, {"color": "#333333", "dashes": true, "from": "breakitdown", "title": "3 shared session(s): EA50 5.1, EA50 5.2, EA50 6.2", "to": "heuristics", "value": 3}, {"color": "#333333", "dashes": true, "from": "dataviz", "title": "3 shared session(s): EA50 8.1, EA50 8.2, FA50 6.2", "to": "descriptivestats", "value": 3}, {"color": "#b0b6c0", "dashes": false, "from": "hypothesisdevelopment", "title": "3 shared session(s): EA50 10.2, EA50 11.1, EA50 11.2", "to": "interventionalstudy", "value": 3}, {"color": "#b0b6c0", "dashes": false, "from": "interventionalstudy", "title": "3 shared session(s): EA50 10.2, EA50 11.1, EA50 11.2", "to": "observationalstudy", "value": 3}, {"color": "#b0b6c0", "dashes": false, "from": "dataviz", "title": "3 shared session(s): EA50 9.1, EA50 11.2, EA50 13.2", "to": "hypothesisdevelopment", "value": 3}, {"color": "#b0b6c0", "dashes": false, "from": "evidencebased", "title": "3 shared session(s): EA50 7.1, EA50 8.1, EA50 11.1", "to": "variables", "value": 3}, {"color": "#b0b6c0", "dashes": false, "from": "analogies", "title": "3 shared session(s): EA50 4.2, EA50 5.1, EA50 6.2", "to": "gapanalysis", "value": 3}, {"color": "#333333", "dashes": true, "from": "analogies", "title": "3 shared session(s): EA50 4.2, EA50 5.1, EA50 6.2", "to": "rightproblem", "value": 3}, {"color": "#b0b6c0", "dashes": false, "from": "gapanalysis", "title": "3 shared session(s): EA50 5.1, EA50 5.2, EA50 6.2", "to": "heuristics", "value": 3}, {"color": "#b0b6c0", "dashes": false, "from": "constraints", "title": "3 shared session(s): EA50 5.1, EA50 5.2, EA50 6.2", "to": "heuristics", "value": 3}, {"color": "#333333", "dashes": true, "from": "critique", "title": "3 shared session(s): MC50 4.2, MC50 10.2, MC50 13.1", "to": "thesis", "value": 3}, {"color": "#b0b6c0", "dashes": false, "from": "audience", "title": "3 shared session(s): MC50 9.2, MC50 13.1, MC50 13.2", "to": "organization", "value": 3}, {"color": "#333333", "dashes": true, "from": "connotation", "title": "3 shared session(s): MC50 10.1, MC50 11.1, MC50 13.1", "to": "evidencebased", "value": 3}, {"color": "#333333", "dashes": true, "from": "observationalstudy", "title": "3 shared session(s): EA50 11.1, EA50 11.2, EA50 13.2", "to": "plausibility", "value": 3}, {"color": "#b0b6c0", "dashes": false, "from": "confidenceintervals", "title": "3 shared session(s): FA50 11.2, FA50 13.1, FA50 13.2", "to": "significance", "value": 3}, {"color": "#b0b6c0", "dashes": false, "from": "context", "title": "2 shared session(s): MC50 7.1, MC50 8.2", "to": "sourcequality", "value": 2}, {"color": "#333333", "dashes": true, "from": "context", "title": "2 shared session(s): MC50 7.1, MC50 8.2", "to": "thesis", "value": 2}, {"color": "#333333", "dashes": true, "from": "networks", "title": "2 shared session(s): CX50 9.2, CX50 10.1", "to": "utility", "value": 2}, {"color": "#333333", "dashes": true, "from": "complexcausality", "title": "2 shared session(s): CX50 9.2, CX50 10.1", "to": "utility", "value": 2}, {"color": "#b0b6c0", "dashes": false, "from": "composition", "title": "2 shared session(s): MC50 13.1, MC50 13.2", "to": "thesis", "value": 2}, {"color": "#b0b6c0", "dashes": false, "from": "audience", "title": "2 shared session(s): MC50 9.2, MC50 13.1", "to": "connotation", "value": 2}, {"color": "#333333", "dashes": true, "from": "audience", "title": "2 shared session(s): MC50 9.2, MC50 13.1", "to": "critique", "value": 2}, {"color": "#333333", "dashes": true, "from": "composition", "title": "2 shared session(s): MC50 9.2, MC50 11.2", "to": "context", "value": 2}, {"color": "#333333", "dashes": true, "from": "connotation", "title": "2 shared session(s): MC50 9.2, MC50 11.2", "to": "context", "value": 2}, {"color": "#333333", "dashes": true, "from": "composition", "title": "2 shared session(s): MC50 9.2, MC50 13.1", "to": "critique", "value": 2}, {"color": "#b0b6c0", "dashes": false, "from": "evidencebased", "title": "2 shared session(s): MC50 8.2, EA50 7.2", "to": "sourcequality", "value": 2}, {"color": "#333333", "dashes": true, "from": "sourcequality", "title": "2 shared session(s): MC50 7.1, MC50 8.2", "to": "thesis", "value": 2}, {"color": "#b0b6c0", "dashes": false, "from": "audience", "title": "2 shared session(s): MC50 13.1, MC50 13.2", "to": "thesis", "value": 2}, {"color": "#333333", "dashes": true, "from": "audience", "title": "2 shared session(s): MC50 13.1, MC50 13.2", "to": "evidencebased", "value": 2}, {"color": "#b0b6c0", "dashes": false, "from": "plausibility", "title": "2 shared session(s): EA50 11.1, EA50 11.2", "to": "variables", "value": 2}, {"color": "#333333", "dashes": true, "from": "observationalstudy", "title": "2 shared session(s): EA50 11.1, EA50 13.2", "to": "testability", "value": 2}, {"color": "#333333", "dashes": true, "from": "interventionalstudy", "title": "2 shared session(s): EA50 11.1, EA50 11.2", "to": "variables", "value": 2}, {"color": "#333333", "dashes": true, "from": "hypothesisdevelopment", "title": "2 shared session(s): EA50 11.1, EA50 11.2", "to": "variables", "value": 2}, {"color": "#333333", "dashes": true, "from": "modeling", "title": "2 shared session(s): EA50 13.1, EA50 13.2", "to": "testability", "value": 2}, {"color": "#b0b6c0", "dashes": false, "from": "hypothesisdevelopment", "title": "2 shared session(s): EA50 13.1, EA50 13.2", "to": "modeling", "value": 2}, {"color": "#333333", "dashes": true, "from": "dataviz", "title": "2 shared session(s): EA50 7.1, EA50 8.1", "to": "evidencebased", "value": 2}, {"color": "#b0b6c0", "dashes": false, "from": "plausibility", "title": "2 shared session(s): EA50 11.1, EA50 13.2", "to": "testability", "value": 2}, {"color": "#b0b6c0", "dashes": false, "from": "distributions", "title": "2 shared session(s): FA50 8.1, FA50 9.1", "to": "variables", "value": 2}, {"color": "#333333", "dashes": true, "from": "algorithms", "title": "2 shared session(s): FA50 2.2, FA50 3.1", "to": "deduction", "value": 2}, {"color": "#b0b6c0", "dashes": false, "from": "fallacies", "title": "2 shared session(s): FA50 4.1, FA50 4.2", "to": "induction", "value": 2}, {"color": "#b0b6c0", "dashes": false, "from": "descriptivestats", "title": "2 shared session(s): FA50 8.1, FA50 11.1", "to": "probability", "value": 2}, {"color": "#333333", "dashes": true, "from": "dataviz", "title": "2 shared session(s): EA50 11.2, EA50 13.2", "to": "plausibility", "value": 2}, {"color": "#b0b6c0", "dashes": false, "from": "deduction", "title": "2 shared session(s): FA50 4.1, FA50 4.2", "to": "fallacies", "value": 2}, {"color": "#333333", "dashes": true, "from": "observationalstudy", "title": "2 shared session(s): EA50 11.1, EA50 11.2", "to": "variables", "value": 2}, {"color": "#b0b6c0", "dashes": false, "from": "probability", "title": "2 shared session(s): FA50 8.1, FA50 9.1", "to": "variables", "value": 2}, {"color": "#b0b6c0", "dashes": false, "from": "conformity", "title": "2 shared session(s): CX50 13.1, CX50 13.2", "to": "powerdynamics", "value": 2}, {"color": "#333333", "dashes": true, "from": "systemdynamics", "title": "2 shared session(s): CX50 9.2, CX50 10.1", "to": "utility", "value": 2}, {"color": "#b0b6c0", "dashes": false, "from": "analogies", "title": "2 shared session(s): EA50 5.1, EA50 6.2", "to": "heuristics", "value": 2}, {"color": "#b0b6c0", "dashes": false, "from": "evidencebased", "title": "2 shared session(s): EA50 2.1, EA50 11.1", "to": "rightproblem", "value": 2}, {"color": "#333333", "dashes": true, "from": "interventionalstudy", "title": "2 shared session(s): EA50 11.1, EA50 11.2", "to": "plausibility", "value": 2}, {"color": "#b0b6c0", "dashes": false, "from": "dataviz", "title": "2 shared session(s): EA50 11.2, EA50 13.2", "to": "observationalstudy", "value": 2}, {"color": "#b0b6c0", "dashes": false, "from": "descriptivestats", "title": "2 shared session(s): FA50 8.1, FA50 11.1", "to": "distributions", "value": 2}, {"color": "#333333", "dashes": true, "from": "levelsofanalysis", "title": "2 shared session(s): CX50 10.1, CX50 11.1", "to": "psychologicalexplanation", "value": 2}, {"color": "#b0b6c0", "dashes": false, "from": "powerdynamics", "title": "2 shared session(s): CX50 13.1, CX50 13.2", "to": "systemmapping", "value": 2}, {"color": "#333333", "dashes": true, "from": "complexcausality", "title": "2 shared session(s): CX50 9.1, CX50 10.1", "to": "psychologicalexplanation", "value": 2}, {"color": "#b0b6c0", "dashes": false, "from": "systemdynamics", "title": "2 shared session(s): CX50 7.1, CX50 13.2", "to": "systemmapping", "value": 2}, {"color": "#333333", "dashes": true, "from": "emergentproperties", "title": "2 shared session(s): CX50 9.1, CX50 10.1", "to": "psychologicalexplanation", "value": 2}, {"color": "#b0b6c0", "dashes": false, "from": "context", "title": "1 shared session(s): MC50 8.2", "to": "evidencebased", "value": 1}, {"color": "#333333", "dashes": true, "from": "organization", "title": "1 shared session(s): MC50 8.2", "to": "sourcequality", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "emotionaliq", "title": "1 shared session(s): CX50 8.1", "to": "networks", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "emotionaliq", "title": "1 shared session(s): CX50 8.1", "to": "levelsofanalysis", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "emotionaliq", "title": "1 shared session(s): CX50 8.1", "to": "systemdynamics", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "emergentproperties", "title": "1 shared session(s): CX50 8.1", "to": "emotionaliq", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "complexcausality", "title": "1 shared session(s): CX50 8.1", "to": "emotionaliq", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "expression", "title": "1 shared session(s): MC50 13.2", "to": "organization", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "composition", "title": "1 shared session(s): MC50 13.2", "to": "expression", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "expression", "title": "1 shared session(s): MC50 13.2", "to": "thesis", "value": 1}, {"color": "#333333", "dashes": true, "from": "evidencebased", "title": "1 shared session(s): MC50 13.2", "to": "expression", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "responsibility", "title": "1 shared session(s): CX50 Foundation", "to": "selfawareness", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "emotionaliq", "title": "1 shared session(s): CX50 Foundation", "to": "responsibility", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "emotionaliq", "title": "1 shared session(s): CX50 Foundation", "to": "selfawareness", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "evidencebased", "title": "1 shared session(s): MC50 13.1", "to": "interpretivelens", "value": 1}, {"color": "#333333", "dashes": true, "from": "interpretivelens", "title": "1 shared session(s): MC50 13.1", "to": "organization", "value": 1}, {"color": "#333333", "dashes": true, "from": "interpretivelens", "title": "1 shared session(s): MC50 13.1", "to": "thesis", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "audience", "title": "1 shared session(s): MC50 13.2", "to": "expression", "value": 1}, {"color": "#333333", "dashes": true, "from": "composition", "title": "1 shared session(s): MC50 13.1", "to": "interpretivelens", "value": 1}, {"color": "#333333", "dashes": true, "from": "audience", "title": "1 shared session(s): MC50 9.2", "to": "context", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "context", "title": "1 shared session(s): MC50 9.2", "to": "critique", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "composition", "title": "1 shared session(s): MC50 11.2", "to": "professionalism", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "organization", "title": "1 shared session(s): MC50 11.2", "to": "professionalism", "value": 1}, {"color": "#333333", "dashes": true, "from": "context", "title": "1 shared session(s): MC50 11.2", "to": "professionalism", "value": 1}, {"color": "#333333", "dashes": true, "from": "audience", "title": "1 shared session(s): MC50 13.1", "to": "interpretivelens", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "connotation", "title": "1 shared session(s): MC50 11.2", "to": "professionalism", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "connotation", "title": "1 shared session(s): MC50 13.1", "to": "thesis", "value": 1}, {"color": "#333333", "dashes": true, "from": "connotation", "title": "1 shared session(s): MC50 13.1", "to": "interpretivelens", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "critique", "title": "1 shared session(s): MC50 13.1", "to": "interpretivelens", "value": 1}, {"color": "#333333", "dashes": true, "from": "purpose", "title": "1 shared session(s): CX50 13.2", "to": "systemdynamics", "value": 1}, {"color": "#333333", "dashes": true, "from": "purpose", "title": "1 shared session(s): CX50 13.2", "to": "systemmapping", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "conformity", "title": "1 shared session(s): CX50 13.2", "to": "systemdynamics", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "complexcausality", "title": "1 shared session(s): CX50 13.2", "to": "powerdynamics", "value": 1}, {"color": "#333333", "dashes": true, "from": "complexcausality", "title": "1 shared session(s): CX50 13.2", "to": "purpose", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "evidencebased", "title": "1 shared session(s): EA50 11.1", "to": "plausibility", "value": 1}, {"color": "#333333", "dashes": true, "from": "evidencebased", "title": "1 shared session(s): EA50 11.1", "to": "observationalstudy", "value": 1}, {"color": "#333333", "dashes": true, "from": "evidencebased", "title": "1 shared session(s): EA50 11.1", "to": "interventionalstudy", "value": 1}, {"color": "#333333", "dashes": true, "from": "evidencebased", "title": "1 shared session(s): EA50 11.1", "to": "hypothesisdevelopment", "value": 1}, {"color": "#333333", "dashes": true, "from": "evidencebased", "title": "1 shared session(s): EA50 11.1", "to": "gapanalysis", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "descriptivestats", "title": "1 shared session(s): EA50 8.1", "to": "evidencebased", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "heuristics", "title": "1 shared session(s): EA50 5.2", "to": "scienceoflearning", "value": 1}, {"color": "#333333", "dashes": true, "from": "rightproblem", "title": "1 shared session(s): EA50 5.2", "to": "scienceoflearning", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "constraints", "title": "1 shared session(s): EA50 5.2", "to": "scienceoflearning", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "gapanalysis", "title": "1 shared session(s): EA50 5.2", "to": "scienceoflearning", "value": 1}, {"color": "#333333", "dashes": true, "from": "breakitdown", "title": "1 shared session(s): EA50 5.2", "to": "scienceoflearning", "value": 1}, {"color": "#333333", "dashes": true, "from": "conformity", "title": "1 shared session(s): CX50 13.2", "to": "purpose", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "conformity", "title": "1 shared session(s): CX50 11.1", "to": "levelsofanalysis", "value": 1}, {"color": "#333333", "dashes": true, "from": "psychologicalexplanation", "title": "1 shared session(s): CX50 10.1", "to": "systemdynamics", "value": 1}, {"color": "#333333", "dashes": true, "from": "networks", "title": "1 shared session(s): CX50 10.1", "to": "psychologicalexplanation", "value": 1}, {"color": "#333333", "dashes": true, "from": "emergentproperties", "title": "1 shared session(s): CX50 10.1", "to": "utility", "value": 1}, {"color": "#333333", "dashes": true, "from": "differences", "title": "1 shared session(s): CX50 11.1", "to": "utility", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "conformity", "title": "1 shared session(s): CX50 11.2", "to": "emergentproperties", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "differences", "title": "1 shared session(s): CX50 11.1", "to": "levelsofanalysis", "value": 1}, {"color": "#333333", "dashes": true, "from": "differences", "title": "1 shared session(s): CX50 11.1", "to": "psychologicalexplanation", "value": 1}, {"color": "#333333", "dashes": true, "from": "conformity", "title": "1 shared session(s): CX50 11.1", "to": "utility", "value": 1}, {"color": "#333333", "dashes": true, "from": "conformity", "title": "1 shared session(s): CX50 11.1", "to": "psychologicalexplanation", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "conformity", "title": "1 shared session(s): CX50 11.1", "to": "differences", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "complexcausality", "title": "1 shared session(s): CX50 13.2", "to": "conformity", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "powerdynamics", "title": "1 shared session(s): CX50 13.2", "to": "systemdynamics", "value": 1}, {"color": "#333333", "dashes": true, "from": "powerdynamics", "title": "1 shared session(s): CX50 13.2", "to": "purpose", "value": 1}, {"color": "#333333", "dashes": true, "from": "observationalstudy", "title": "1 shared session(s): EA50 11.1", "to": "rightproblem", "value": 1}, {"color": "#333333", "dashes": true, "from": "interventionalstudy", "title": "1 shared session(s): EA50 11.1", "to": "testability", "value": 1}, {"color": "#333333", "dashes": true, "from": "hypothesisdevelopment", "title": "1 shared session(s): EA50 11.1", "to": "rightproblem", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "evidencebased", "title": "1 shared session(s): EA50 11.1", "to": "testability", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "gapanalysis", "title": "1 shared session(s): EA50 11.1", "to": "interventionalstudy", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "gapanalysis", "title": "1 shared session(s): EA50 11.1", "to": "hypothesisdevelopment", "value": 1}, {"color": "#333333", "dashes": true, "from": "modeling", "title": "1 shared session(s): EA50 13.2", "to": "plausibility", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "modeling", "title": "1 shared session(s): EA50 13.2", "to": "observationalstudy", "value": 1}, {"color": "#333333", "dashes": true, "from": "dataviz", "title": "1 shared session(s): EA50 13.2", "to": "testability", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "dataviz", "title": "1 shared session(s): EA50 13.2", "to": "modeling", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "rightproblem", "title": "1 shared session(s): EA50 11.1", "to": "testability", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "rightproblem", "title": "1 shared session(s): EA50 11.1", "to": "variables", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "testability", "title": "1 shared session(s): EA50 11.1", "to": "variables", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "dataviz", "title": "1 shared session(s): EA50 11.2", "to": "interventionalstudy", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "plausibility", "title": "1 shared session(s): EA50 11.1", "to": "rightproblem", "value": 1}, {"color": "#333333", "dashes": true, "from": "gapanalysis", "title": "1 shared session(s): EA50 11.1", "to": "variables", "value": 1}, {"color": "#333333", "dashes": true, "from": "gapanalysis", "title": "1 shared session(s): EA50 11.1", "to": "testability", "value": 1}, {"color": "#333333", "dashes": true, "from": "gapanalysis", "title": "1 shared session(s): EA50 11.1", "to": "plausibility", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "gapanalysis", "title": "1 shared session(s): EA50 11.1", "to": "observationalstudy", "value": 1}, {"color": "#333333", "dashes": true, "from": "interventionalstudy", "title": "1 shared session(s): EA50 11.1", "to": "rightproblem", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "deduction", "title": "1 shared session(s): FA50 5.1", "to": "estimation", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "breakitdown", "title": "1 shared session(s): FA50 5.1", "to": "deduction", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "fallacies", "title": "1 shared session(s): FA50 7.2", "to": "probability", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "algorithms", "title": "1 shared session(s): FA50 6.2", "to": "dataviz", "value": 1}, {"color": "#333333", "dashes": true, "from": "algorithms", "title": "1 shared session(s): FA50 6.2", "to": "descriptivestats", "value": 1}, {"color": "#333333", "dashes": true, "from": "algorithms", "title": "1 shared session(s): FA50 6.2", "to": "variables", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "estimation", "title": "1 shared session(s): FA50 5.1", "to": "induction", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "breakitdown", "title": "1 shared session(s): FA50 5.1", "to": "estimation", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "breakitdown", "title": "1 shared session(s): FA50 5.1", "to": "induction", "value": 1}, {"color": "#333333", "dashes": true, "from": "algorithms", "title": "1 shared session(s): FA50 8.2", "to": "distributions", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "estimation", "title": "1 shared session(s): FA50 8.2", "to": "probability", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "distributions", "title": "1 shared session(s): FA50 8.2", "to": "estimation", "value": 1}, {"color": "#333333", "dashes": true, "from": "algorithms", "title": "1 shared session(s): FA50 8.2", "to": "probability", "value": 1}, {"color": "#333333", "dashes": true, "from": "algorithms", "title": "1 shared session(s): FA50 8.2", "to": "estimation", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "confidenceintervals", "title": "1 shared session(s): FA50 11.1", "to": "descriptivestats", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "distributions", "title": "1 shared session(s): FA50 14.1", "to": "induction", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "induction", "title": "1 shared session(s): FA50 14.1", "to": "probability", "value": 1}, {"color": "#b0b6c0", "dashes": false, "from": "induction", "title": "1 shared session(s): FA50 14.1", "to": "significance", "value": 1}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"nodes": {"font": {"size": 16, "face": "monospace"}}, "edges": {"smooth": false, "scaling": {"min": 1, "max": 8}}, "physics": {"barnesHut": {"gravitationalConstant": -6000, "springLength": 120, "springConstant": 0.03, "avoidOverlap": 0.3}, "stabilization": {"iterations": 300}}, "interaction": {"hover": true, "tooltipDelay": 100}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
